@@ -7,6 +7,9 @@ import 'package:provider/single_child_widget.dart';
 /// of multiple [BlocProvider]s.
 mixin BlocProviderSingleChildWidget on SingleChildWidget {}
 
+/// A function that hooks into disposing an object.
+typedef Disposing = void Function();
+
 /// {@template bloc_provider}
 /// Takes a [Create] function that is responsible for
 /// creating the [Bloc] or [Cubit] and a [child] which will have access
@@ -40,9 +43,11 @@ class BlocProvider<T extends BlocBase<Object?>>
   BlocProvider({
     Key? key,
     required Create<T> create,
+    Disposing? disposing,
     this.child,
     this.lazy,
   })  : _create = create,
+        _disposing = disposing,
         _value = null,
         super(key: key, child: child);
 
@@ -69,6 +74,7 @@ class BlocProvider<T extends BlocBase<Object?>>
     this.child,
   })  : _value = value,
         _create = null,
+        _disposing = null,
         lazy = null,
         super(key: key, child: child);
 
@@ -80,6 +86,8 @@ class BlocProvider<T extends BlocBase<Object?>>
   final bool? lazy;
 
   final Create<T>? _create;
+
+  final Disposing? _disposing;
 
   final T? _value;
 
@@ -125,7 +133,11 @@ class BlocProvider<T extends BlocBase<Object?>>
           )
         : InheritedProvider<T>(
             create: _create,
-            dispose: (_, bloc) => bloc.close(),
+            dispose: (_, bloc) {
+              // proposed change
+              _disposing?.call();
+              bloc.close();
+            },
             startListening: _startListening,
             child: child,
             lazy: lazy,
